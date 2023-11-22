@@ -1,0 +1,64 @@
+version: '3.8'
+services:
+
+  nginx-work:
+    image: nginx:latest
+    ports:
+      - "95:80"
+      - "543:443"
+    volumes:
+      - ./hosts:/etc/nginx/conf.d
+      - ./www-nginx:/var/www
+      - ./logs/nginx:/var/log/nginx
+    links:
+      - php
+    networks:
+      - work_network
+
+  php-work:
+    build: ./images/php
+    links:
+      - mysql
+    volumes:
+      - ./www-nginx:/var/www
+
+  mysql-work:
+    build: ./images/mysql
+    ports:
+      - "3366:3306"
+    volumes:
+      - /etc/mysql:/etc/mysql
+      - ./logs/mysql:/var/log/mysql
+      - ./mysql:/var/lib/mysql
+      - ./mysql-files:/var/lib/mysql-files
+      - ./data:/docker-entrypoint-initdb.d
+      - work_dbdata:/var/lib/mysql/
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_DATABASE: work
+
+    networks:
+      - work_network
+
+  node-webpack-work:
+    restart: always 
+    build: 
+      context: .
+      dockerfile: ./images/Dockerfile
+    volumes: 
+      - /app/node_modules
+      - ./www:/app 
+    ports: 
+      - "3003:3000"
+      - "8080:8080"
+      - "3030:3030"
+    networks:
+      - work_network
+
+networks:
+  work_network:
+    driver: bridge
+
+volumes:
+  work_dbdata:
+    driver: local
